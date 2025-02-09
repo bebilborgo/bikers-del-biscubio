@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), interest-cohort=()">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BIKERS del BISCUBIO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        :root {
+            --primary-color: #ff6b1a;
+            --bg-dark: #1a1a1a;
+            --bg-darker: #111111;
+            --text-color: #ffffff;
+        }
+
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-darker);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .splash-content {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .splash-logo {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        @media (max-width: 768px) {
+            .splash-logo {
+                max-width: 200px;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-color);
+        }
+
+        header {
+            background-color: var(--bg-darker);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .logo {
+            font-family: 'Impact', sans-serif;
+            font-size: 2rem;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-style: italic;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            color: #888;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--bg-darker);
+            padding: 1rem;
+        }
+
+        .tab {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: var(--bg-darker);
+        }
+
+        .content {
+            padding: 1rem;
+        }
+
+        #map {
+            height: 50vh;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
+        }
+
+        .tracking-controls {
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 1.5rem 3rem; /* Increased padding for easier clicking */
+            border-radius: 4px;
+            font-size: 1.5rem; /* Increased font size */
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background-color: #ff8142;
+        }
+
+        .btn.recording {
+            background-color: #dc3545;
+        }
+
+        .route-list {
+            list-style: none;
+        }
+
+        .route-item {
+            background-color: var(--bg-darker);
+            margin: 0.5rem 0;
+            padding: 1rem;
+            border-radius: 4px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .route-info {
+            display: grid;
+            grid-template-columns: 1fr auto 2fr auto;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            align-items: center;
+        }
+
+        .info-box {
+            background-color: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .info-box div:not(.thumbnail) {
+            margin: 0.5rem 0;
+        }
+
+        .thumbnail {
+            width: 100%;
+            height: 100px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 1.8rem;
+            }
+
+            .subtitle {
+                font-size: 1.2rem;
+            }
+
+            #map {
+                height: 65vh; /* Aumenta l'altezza della mappa */
+                margin-bottom: 0.5rem;
+            }
+
+            .btn {
+                width: 100%; /* Bottoni a piena larghezza */
+                padding: 1.5rem;
+                font-size: 1.4rem;
+                margin: 0.5rem 0;
+            }
+
+            .tabs {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                flex-direction: row;
+                background-color: var(--bg-darker);
+                padding: 0.5rem;
+                z-index: 1000;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            }
+
+            .tab {
+                flex: 1;
+                margin: 0;
+                padding: 1rem 0.5rem;
+                font-size: 1.2rem;
+                text-align: center;
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 0.5rem;
+                padding-bottom: 5rem; /* Spazio per la barra di navigazione */
+            }
+
+            .route-info {
+                grid-template-columns: 1fr 1fr; /* 2 colonne per le info */
+                gap: 0.5rem;
+            }
+
+            .info-box {
+                padding: 1rem;
+                font-size: 1.2rem;
+            }
+
+            .info-box strong {
+                display: block;
+                margin-bottom: 0.5rem;
+            }
+
+            .info-box:nth-child(3) {
+                grid-column: 1 / -1;
+            }
+
+            .route-item {
+                margin: 0.5rem 0;
+                padding: 1rem;
+            }
+
+            .route-item h3 {
+                font-size: 1.4rem;
+                margin-bottom: 1rem;
+            }
+
+            .thumbnail {
+                height: 200px; /* Miniature più grandi */
+                margin-top: 1rem;
+            }
+
+            .photo-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 0.5rem;
+                padding: 0.5rem;
+            }
+
+            .photo-item {
+                aspect-ratio: 1;
+            }
+
+            /* Ottimizzazione per touch */
+            * {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Previeni lo zoom su input */
+            input, select, textarea {
+                font-size: 16px;
+            }
+        }
+
+        .btn.delete {
+            background-color: #dc3545;
+            margin-top: 0.5rem;
+        }
+        
+        .btn.delete:hover {
+            background-color: #c82333;
+        }
+
+        @media (max-width: 768px) {
+            .btn.delete {
+                margin-top: 0.5rem;
+            }
+        }
+
+        .photo-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photo-overlay img {
+            max-width: 90%;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        .photo-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+
+        .photo-item {
+            position: relative;
+        }
+
+        .photo-item.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-color);
+        }
+
+        .photo-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        .photo-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .notes-box {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .notes-input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .route-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .route-main-info {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .map-box {
+            grid-column: 1 / -1;
+        }
+
+        .route-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .route-actions .btn {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1rem;
+        }
+
+        .thumbnail {
+            height: 200px;
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .notes-box {
+            grid-column: 1 / -1;
+        }
+
+        .notes-input {
+            width: 100%;
+            min-height: 80px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        @media (max-width: 768px) {
+            .route-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .route-actions .btn {
+                width: 100%;
+                margin: 0;
+            }
+
+            .thumbnail {
+                height: 150px;
+            }
+        }
+
+        .photo-item {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .photo-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        .photo-actions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .photo-item:hover .photo-actions {
+            opacity: 1;
+        }
+
+        .photo-actions .btn {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .photo-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photo-overlay img {
+            max-width: 90%;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        .photo-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .photo-notes {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 60px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img class="splash-logo" src="images/splash_logo.PNG" alt="BIKERS del BISCUBIO">
+        </div>
+    </div>
+    <header>
+        <h1 class="logo">BIKERS del BISCUBIO</h1>
+        <div class="subtitle">Traccia le tue avventure</div>
+    </header>
+
+    <nav class="tabs">
+        <a href="#tracker" class="tab active">Tracker</a>
+        <a href="#routes" class="tab">Percorsi</a>
+        <a href="#photos" class="tab">Foto</a>
+    </nav>
+
+    <main class="content">
+        <div id="tracker" class="section">
+            <div id="map"></div>
+            <div class="tracking-controls">
+                <button id="trackBtn" class="btn">Start Tracking</button>
+            </div>
+            <div class="route-info">
+                <div class="info-box">
+                    <strong>Distanza</strong>
+                    <div id="distance">0.0 km</div>
+                </div>
+                <div class="info-box">
+                    <strong>Tempo</strong>
+                    <div id="time">00:00:00</div>
+                </div>
+                <div class="info-box">
+                    <strong>Velocità</strong>
+                    <div id="speed">0 km/h</div>
+                </div>
+                <div class="info-box">
+                    <strong>Altitudine</strong>
+                    <div id="altitude">0 m</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="routes" class="section" style="display: none;">
+            <div class="tracking-controls">
+                <input type="file" id="gpxFileInput" accept=".gpx" style="display: none;">
+                <button id="uploadGpxBtn" class="btn">Carica GPX</button>
+            </div>
+            <ul class="route-list">
+                <!-- I percorsi verranno inseriti qui dinamicamente -->
+            </ul>
+        </div>
+
+        <div id="photos" class="section" style="display: none;">
+            <div class="tracking-controls">
+                <button id="addPhotoBtn" class="btn">Aggiungi Foto</button>
+                <button id="selectAllPhotosBtn" class="btn">Seleziona Tutte</button>
+                <button id="deleteSelectedPhotosBtn" class="btn delete" style="display: none;">Cancella Selezionate</button>
+            </div>
+            <div class="photo-grid">
+                <!-- Le foto verranno inserite qui dinamicamente -->
+            </div>
+            <div id="photoOverlay" class="photo-overlay">
+                <img id="fullscreenPhoto" src="" alt="Full screen photo">
+                <textarea id="photoNotes" class="photo-notes" 
+                    placeholder="Aggiungi una nota..."
+                    onchange="saveFullscreenNotes()"></textarea>
+                <div class="photo-controls">
+                    <button class="btn" onclick="closeFullscreen()">Chiudi</button>
+                    <button class="btn" onclick="shareCurrentPhoto()">Condividi</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Gestione splash screen
+        document.addEventListener('DOMContentLoaded', () => {
+            const splashScreen = document.getElementById('splash-screen');
+            
+            // Mostra splash screen per 2 secondi
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 500); // Rimuovi dopo che il fade out è completato
+            }, 2000);
+        });
+        
+        // Inizializzazione della mappa
+        const map = L.map('map').setView([43.6, 12.2], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Variabili per il tracking
+        let isTracking = false;
+        let currentTrack = [];
+        let startTime = null;
+        let trackPolyline = null;
+        let watchId = null;
+
+        // Gestione dei tab
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = e.target.getAttribute('href').slice(1);
+                
+                // Aggiorna classi active
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // Mostra/nascondi sezioni
+                document.querySelectorAll('.section').forEach(section => {
+                    section.style.display = section.id === targetId ? 'block' : 'none';
+                });
+            });
+        });
+
+        // Gestione del tracking
+        const trackBtn = document.getElementById('trackBtn');
+        trackBtn.addEventListener('click', () => {
+            if (!isTracking) {
+                startTracking();
+            } else {
+                stopTracking();
+            }
+        });
+
+        function startTracking() {
+            if (!navigator.geolocation) {
+                alert('Il tuo browser non supporta la geolocalizzazione');
+                return;
+            }
+        
+            try {
+                isTracking = true;
+                startTime = new Date();
+                currentTrack = [];
+                trackBtn.textContent = 'Stop';
+                trackBtn.classList.add('recording');
+                
+                if (trackPolyline) {
+                    map.removeLayer(trackPolyline);
+                }
+                trackPolyline = L.polyline([], {color: 'red'}).addTo(map);
+        
+                watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        const { latitude, longitude, altitude, speed } = position.coords;
+                        const point = {
+                            lat: latitude,
+                            lng: longitude,
+                            alt: altitude || 0,
+                            speed: speed || 0,
+                            time: new Date()
+                        };
+                        
+                        currentTrack.push(point);
+                        trackPolyline.addLatLng([latitude, longitude]);
+                        updateTrackInfo(point);
+                        map.setView([latitude, longitude]);
+                    },
+                    error => {
+                        console.error('Errore nel tracking:', error);
+                        alert('Errore nel tracking: ' + error.message);
+                        stopTracking();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            } catch (error) {
+                console.error('Errore nell\'avvio del tracking:', error);
+                alert('Errore nell\'avvio del tracking: ' + error.message);
+                stopTracking();
+            }
+        }
+        
+
+        function stopTracking() {
+            isTracking = false;
+            trackBtn.textContent = 'Start Tracking';
+            trackBtn.classList.remove('recording');
+            navigator.geolocation.clearWatch(watchId);
+            
+            if (currentTrack.length > 0) {
+                saveTrack();
+            }
+        }
+
+        function updateTrackInfo(point) {
+            // Aggiorna le informazioni in tempo reale
+            document.getElementById('distance').textContent = 
+                `${calculateDistance(currentTrack).toFixed(1)} km`;
+            document.getElementById('time').textContent = 
+                formatDuration(new Date() - startTime);
+            document.getElementById('speed').textContent = 
+                `${(point.speed ? (point.speed * 3.6).toFixed(1) : '0')} km/h`;
+            document.getElementById('altitude').textContent = 
+                `${point.alt ? point.alt.toFixed(0) : '0'} m`;
+        }
+
+        function calculateDistance(track) {
+            let distance = 0;
+            for (let i = 1; i < track.length; i++) {
+                distance += calculateHaversine(track[i-1], track[i]);
+            }
+            return distance;
+        }
+
+        function calculateHaversine(point1, point2) {
+            const R = 6371; // Raggio della Terra in km
+            const dLat = toRad(point2.lat - point1.lat);
+            const dLon = toRad(point2.lng - point1.lng);
+            const lat1 = toRad(point1.lat);
+            const lat2 = toRad(point2.lat);
+
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.sin(dLon/2) * Math.sin(dLon/2) * 
+                    Math.cos(lat1) * Math.cos(lat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Add return statement
+        }
+
+        function toRad(deg) {
+            return deg * Math.PI / 180;
+        }
+
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function saveTrack() {
+            // Creazione del file GPX
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+            <gpx version="1.1">
+                <trk>
+                    <name>Percorso ${new Date().toLocaleDateString()}</name>
+                    <trkseg>`;
+            
+            currentTrack.forEach(point => {
+                gpx += `
+                    <trkpt lat="${point.lat}" lon="${point.lng}">
+                        <ele>${point.alt || 0}</ele>
+                        <time>${point.time.toISOString()}</time>
+                    </trkpt>`;
+            });
+            
+            gpx += `
+                    </trkseg>
+                </trk>
+            </gpx>`;
+
+            // Salva il percorso in localStorage
+            const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+            tracks.push({
+                date: new Date().toISOString(),
+                distance: calculateDistance(currentTrack),
+                duration: new Date() - startTime,
+                gpx: gpx,
+                points: currentTrack
+            });
+            localStorage.setItem('tracks', JSON.stringify(tracks));
+            
+            // Aggiorna la lista dei percorsi
+            updateRoutesList();
+        }
+
+        function updateRoutesList() {
+            const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+            const routeList = document.querySelector('.route-list');
+            routeList.innerHTML = '';
+
+            tracks.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.className = 'route-item';
+                li.innerHTML = `
+                    <h3>Percorso ${new Date(track.date).toLocaleDateString()}</h3>
+                    <div class="route-content">
+                        <div class="route-main-info">
+                            <div class="info-box">
+                                <strong>Info Percorso</strong>
+                                <div>Distanza: ${track.distance.toFixed(1)} km</div>
+                                <div>Durata: ${formatDuration(track.duration)}</div>
+                            </div>
+                            <div class="info-box map-box">
+                                <div id="thumbnail-${index}" class="thumbnail"></div>
+                            </div>
+                            <div class="notes-box">
+                                <textarea class="notes-input" 
+                                    placeholder="Aggiungi note sul percorso..."
+                                    onchange="saveNotes(${index}, this.value)">${track.notes || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="route-actions">
+                            <button class="btn" onclick="downloadGPX(${index})">
+                                Download GPX
+                            </button>
+                            <button class="btn" onclick="shareTrack(${index})">
+                                Condividi
+                            </button>
+                            <button class="btn delete" onclick="deleteTrack(${index})">
+                                Elimina
+                            </button>
+                        </div>
+                    </div>`;
+                routeList.appendChild(li);
+                generateThumbnail(track.points, `thumbnail-${index}`);
+            });
+        }
+
+        function generateThumbnail(points, elementId) {
+            const thumbnailMap = L.map(elementId, {
+                attributionControl: false,
+                zoomControl: false,
+                dragging: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                boxZoom: false,
+                keyboard: false
+            }).setView([43.6, 12.2], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(thumbnailMap);
+
+            const thumbnailPolyline = L.polyline(points.map(p => [p.lat, p.lng]), {color: 'red'}).addTo(thumbnailMap);
+            thumbnailMap.fitBounds(thumbnailPolyline.getBounds());
+        }
+
+        function downloadGPX(index) {
+            const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+            const track = tracks[index];
+            if (!track) return;
+
+            const blob = new Blob([track.gpx], {type: 'application/gpx+xml'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `track-${index + 1}.gpx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function deleteTrack(index) {
+            if (confirm('Sei sicuro di voler cancellare questo percorso?')) {
+                const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+                tracks.splice(index, 1);
+                localStorage.setItem('tracks', JSON.stringify(tracks));
+                updateRoutesList();
+            }
+        }
+
+        function saveNotes(index, notes) {
+            const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+            tracks[index].notes = notes;
+            localStorage.setItem('tracks', JSON.stringify(tracks));
+        }
+
+        function shareTrack(index) {
+            const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+            const track = tracks[index];
+            const shareText = `
+                Percorso del ${new Date(track.date).toLocaleDateString()}
+                Distanza: ${track.distance.toFixed(1)} km
+                Durata: ${formatDuration(track.duration)}
+                ${track.notes ? '\nNote: ' + track.notes : ''}
+            `;
+            
+            const shareUrl = `whatsapp://send?text=${encodeURIComponent(shareText)}`;
+            window.open(shareUrl);
+        }
+
+        // Gestione dell'aggiunta delle foto
+        const addPhotoBtn = document.getElementById('addPhotoBtn');
+        addPhotoBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+                        photos.push({
+                            date: new Date().toISOString(),
+                            dataUrl: e.target.result,
+                            notes: ''
+                        });
+                        localStorage.setItem('photos', JSON.stringify(photos));
+                        loadSavedPhotos();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        });
+
+           // Load saved photos on startup
+    function loadSavedPhotos() {
+        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        const photoGrid = document.querySelector('.photo-grid');
+        photoGrid.innerHTML = '';
+        
+        photos.forEach((photo, index) => {
+            const photoContainer = document.createElement('div');
+            photoContainer.className = 'photo-container';
+            photoContainer.dataset.index = index;
+            
+            photoContainer.innerHTML = `
+                <div class="photo-item">
+                    <input type="checkbox" class="photo-checkbox" onchange="updatePhotoSelection()">
+                    <img src="${photo.dataUrl}" alt="Photo ${new Date(photo.date).toLocaleDateString()}" 
+                        onclick="openFullscreen(${index})">
+                    <div class="photo-actions">
+                        <button class="btn" onclick="sharePhoto(${index})">
+                            Condividi
+                        </button>
+                        <button class="btn delete" onclick="deletePhoto(${index})">
+                            Cancella
+                        </button>
+                    </div>
+                </div>
+                <textarea class="photo-notes" 
+                    placeholder="Aggiungi una nota..."
+                    onchange="savePhotoNotes(${index}, this.value)">${photo.notes || ''}</textarea>`;
+            
+            photoGrid.appendChild(photoContainer);
+        });
+    }
+
+    function openFullscreen(index) {
+        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        const photo = photos[index];
+        const overlay = document.getElementById('photoOverlay');
+        document.getElementById('fullscreenPhoto').src = photo.dataUrl;
+        document.getElementById('photoNotes').value = photo.notes || '';
+        document.getElementById('photoOverlay').dataset.index = index;
+        overlay.style.display = 'flex';
+    }
+
+    function savePhotoNotes(index, notes) {
+        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        photos[index].notes = notes;
+        localStorage.setItem('photos', JSON.stringify(photos));
+    }
+
+    function sharePhoto(index) {
+        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        const photo = photos[index];
+        const shareText = `Guarda questa foto del mio percorso!${photo.notes ? '\n\nNote: ' + photo.notes : ''}`;
+        const shareUrl = `whatsapp://send?text=${encodeURIComponent(shareText + '\n' + photo.dataUrl)}`;
+        window.open(shareUrl);
+    }
+
+    function deletePhoto(index) {
+        if (confirm('Sei sicuro di voler cancellare questa foto?')) {
+            const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+            photos.splice(index, 1);
+            localStorage.setItem('photos', JSON.stringify(photos));
+            loadSavedPhotos();
+        }
+    }
+
+    function updatePhotoSelection() {
+        const selectedCount = document.querySelectorAll('.photo-checkbox:checked').length;
+        const deleteSelectedBtn = document.getElementById('deleteSelectedPhotosBtn');
+        deleteSelectedBtn.style.display = selectedCount > 0 ? 'block' : 'none';
+    }
+
+    function deleteSelectedPhotos() {
+        if (!confirm('Sei sicuro di voler cancellare le foto selezionate?')) return;
+        
+        const photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        const selectedIndexes = Array.from(document.querySelectorAll('.photo-checkbox:checked'))
+            .map(checkbox => parseInt(checkbox.closest('.photo-item').dataset.index))
+            .sort((a, b) => b - a);
+        
+        selectedIndexes.forEach(index => photos.splice(index, 1));
+        localStorage.setItem('photos', JSON.stringify(photos));
+        loadSavedPhotos();
+    }
+
+    document.getElementById('selectAllPhotosBtn').addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('.photo-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+        updatePhotoSelection();
+    });
+
+    document.getElementById('deleteSelectedPhotosBtn').addEventListener('click', deleteSelectedPhotos);
+
+        loadSavedPhotos();
+
+        // Gestione del caricamento dei file GPX
+        const uploadGpxBtn = document.getElementById('uploadGpxBtn');
+        const gpxFileInput = document.getElementById('gpxFileInput');
+
+        uploadGpxBtn.addEventListener('click', () => {
+            gpxFileInput.click();
+        });
+
+        gpxFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const gpxData = e.target.result;
+                    parseAndSaveGpx(gpxData);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function parseAndSaveGpx(gpxData) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(gpxData, "application/xml");
+                
+                if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                    throw new Error("File GPX non valido");
+                }
+
+                const trkpts = xmlDoc.getElementsByTagName("trkpt");
+                const points = [];
+
+                for (let i = 0; i < trkpts.length; i++) {
+                    try {
+                        const lat = parseFloat(trkpts[i].getAttribute("lat"));
+                        const lon = parseFloat(trkpts[i].getAttribute("lon"));
+                        const eleElement = trkpts[i].getElementsByTagName("ele")[0];
+                        const timeElement = trkpts[i].getElementsByTagName("time")[0];
+                        
+                        if (isNaN(lat) || isNaN(lon)) continue;
+                        
+                        const ele = eleElement ? parseFloat(eleElement.textContent) : 0;
+                        const time = timeElement ? new Date(timeElement.textContent) : new Date();
+                        
+                        points.push({ lat, lng: lon, alt: ele, time });
+                    } catch (e) {
+                        console.error('Errore parsing trackpoint:', e);
+                        continue;
+                    }
+                }
+
+                if (points.length === 0) {
+                    throw new Error("Nessun punto traccia valido trovato");
+                }
+
+                const distance = calculateDistance(points);
+                const duration = points.length > 1 ? points[points.length - 1].time - points[0].time : 0;
+
+                const tracks = JSON.parse(localStorage.getItem('tracks') || '[]');
+                tracks.push({
+                    date: new Date().toISOString(),
+                    distance: distance,
+                    duration: duration,
+                    gpx: gpxData,
+                    points: points
+                });
+                localStorage.setItem('tracks', JSON.stringify(tracks));
+
+                updateRoutesList();
+                alert('Percorso importato con successo');
+            } catch (error) {
+                console.error('Errore parsing GPX:', error);
+                alert('Errore durante l\'importazione del file GPX: ' + error.message);
+            }
+        }
+
+        // Aggiorna la lista dei percorsi all'avvio
+        updateRoutesList();
+
+        function saveFullscreenNotes() {
+            const index = parseInt(document.getElementById('photoOverlay').dataset.index);
+            const notes = document.getElementById('photoNotes').value;
+            savePhotoNotes(index, notes);
+        }
+
+        function shareCurrentPhoto() {
+            const index = parseInt(document.getElementById('photoOverlay').dataset.index);
+            sharePhoto(index);
+        }
+    </script>
+</body>
+</html>
